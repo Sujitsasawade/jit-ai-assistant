@@ -1,0 +1,214 @@
+<!-- ========================================= -->
+<!-- Jit AI Assistant (ChatGPT‑style UI) -->
+<!-- Single File • Copy Paste Run -->
+<!-- ========================================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jit AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial;
+  background:#343541;
+  color:#ececf1;
+  height:100vh;
+  display:flex;
+}
+
+/* Sidebar */
+.sidebar{
+  width:260px;
+  background:#202123;
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid #2a2b32;
+}
+
+.newchat{
+  margin:12px;
+  padding:10px;
+  border:1px solid #3c3d45;
+  border-radius:6px;
+  cursor:pointer;
+}
+.newchat:hover{background:#2a2b32}
+
+.chats{
+  flex:1;
+  overflow:auto;
+  padding:10px;
+  font-size:14px;
+  opacity:.8;
+}
+
+/* Main */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  padding:14px;
+  border-bottom:1px solid #2a2b32;
+  text-align:center;
+  font-weight:600;
+}
+
+.chat{
+  flex:1;
+  overflow:auto;
+  padding:20px 0;
+}
+
+.row{
+  display:flex;
+  padding:18px 20px;
+}
+
+.row.user{background:#343541}
+.row.bot{background:#444654}
+
+.msg{
+  max-width:720px;
+  margin:auto;
+  line-height:1.6;
+  white-space:pre-wrap;
+}
+
+/* Input */
+.inputbar{
+  padding:16px;
+  border-top:1px solid #2a2b32;
+  background:#343541;
+}
+
+.inputwrap{
+  max-width:760px;
+  margin:auto;
+  display:flex;
+  gap:10px;
+}
+
+input{
+  flex:1;
+  padding:12px 14px;
+  border-radius:8px;
+  border:1px solid #3c3d45;
+  background:#40414f;
+  color:white;
+  font-size:15px;
+}
+
+button{
+  padding:0 16px;
+  border-radius:8px;
+  border:none;
+  background:#19c37d;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+button:hover{opacity:.9}
+
+.typing{opacity:.7;font-style:italic}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <div class="newchat" onclick="newChat()">+ New chat</div>
+  <div class="chats">Jit AI Assistant</div>
+</div>
+
+<div class="main">
+  <div class="header">Jit AI Assistant</div>
+  <div id="chat" class="chat"></div>
+
+  <div class="inputbar">
+    <div class="inputwrap">
+      <input id="input" placeholder="Send a message to Jit AI Assistant">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_KEY = "PASTE_YOUR_OPENAI_API_KEY_HERE";
+const chatDiv = document.getElementById("chat");
+const input = document.getElementById("input");
+
+let history = [];
+
+function addRow(text, role){
+  const row = document.createElement("div");
+  row.className = `row ${role}`;
+  const msg = document.createElement("div");
+  msg.className = "msg";
+  msg.textContent = text;
+  row.appendChild(msg);
+  chatDiv.appendChild(row);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+function newChat(){
+  history=[];
+  chatDiv.innerHTML="";
+}
+
+async function sendMessage(){
+  const text = input.value.trim();
+  if(!text) return;
+  input.value="";
+
+  addRow(text,"user");
+  history.push({role:"user",content:text});
+
+  const typingRow=document.createElement("div");
+  typingRow.className="row bot";
+  const typingMsg=document.createElement("div");
+  typingMsg.className="msg typing";
+  typingMsg.textContent="Jit AI is thinking...";
+  typingRow.appendChild(typingMsg);
+  chatDiv.appendChild(typingRow);
+  chatDiv.scrollTop=chatDiv.scrollHeight;
+
+  try{
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${API_KEY}`
+      },
+      body:JSON.stringify({
+        model:"gpt-4.1-mini",
+        messages:history
+      })
+    });
+
+    const data=await res.json();
+    typingRow.remove();
+
+    const reply=data.choices?.[0]?.message?.content||"Error";
+    addRow(reply,"bot");
+    history.push({role:"assistant",content:reply});
+  }catch(e){
+    typingRow.remove();
+    addRow("Connection error","bot");
+  }
+}
+
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter") sendMessage();
+});
+</script>
+
+</body>
+</html>
